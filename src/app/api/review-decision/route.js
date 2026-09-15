@@ -5,7 +5,7 @@ export async function POST(request) {
   }
 
   try {
-    await fetch('https://hook.us2.make.com/3a9db2qthh9t0vda3pvok9rrbue2nkeq', {
+    await fetch('https://hook.us2.make.com/f77r3lpcvi8x1dmlfh43axme7qrgn7l1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderNumber, decision, comment }),
