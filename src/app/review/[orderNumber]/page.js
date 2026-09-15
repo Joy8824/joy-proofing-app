@@ -60,14 +60,14 @@ export default function ReviewPage() {
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       <div className="h-2 bg-brand-green" />
-      <div className="flex-1 flex flex-col md:flex-row px-6 py-8 gap-6 max-w-6xl mx-auto w-full">
+      <div className="flex-1 flex flex-col md:flex-row px-6 py-8 gap-6 max-w-[1400px] mx-auto w-full">
         <div className="flex-1 flex flex-col">
           <h1 className="font-display font-bold uppercase text-xl text-ink mb-4">
             Review Your Proof — Order #{orderNumber}
           </h1>
           <iframe src={proof.embedUrl} title="Proof" className="w-full flex-1 min-h-[70vh] rounded-2xl border border-line" />
         </div>
-        <div className="w-full md:w-72 flex flex-col gap-4">
+        <div className="w-full md:w-64 flex flex-col gap-4">
           <div>
             <label className="font-semibold text-ink text-sm mb-2 block">Notes (optional)</label>
             <textarea
