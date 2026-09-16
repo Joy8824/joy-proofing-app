@@ -1,9 +1,13 @@
 'use client';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function ReviewPage() {
   const { orderNumber } = useParams();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+
+  const [linkValid, setLinkValid] = useState(null);
   const [proof, setProof] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +16,16 @@ export default function ReviewPage() {
   const [decisionMade, setDecisionMade] = useState(null);
 
   useEffect(() => {
-    fetch(`/api/proof-file?orderNumber=${orderNumber}`)
+    if (!orderNumber) return;
+    fetch(`/api/verify-token?orderNumber=${orderNumber}&token=${token || ''}`)
+      .then((res) => res.json())
+      .then((data) => setLinkValid(data.valid))
+      .catch(() => setLinkValid(false));
+  }, [orderNumber, token]);
+
+  useEffect(() => {
+    if (!linkValid) return;
+    fetch(`/api/proof-file?orderNumber=${orderNumber}&token=${token || ''}`)
       .then((res) => {
         if (!res.ok) throw new Error('No proof found for this order yet.');
         return res.json();
@@ -20,7 +33,7 @@ export default function ReviewPage() {
       .then(setProof)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [orderNumber]);
+  }, [linkValid, orderNumber, token]);
 
   async function submitDecision(decision) {
     setSubmitting(true);
@@ -28,7 +41,7 @@ export default function ReviewPage() {
       await fetch('/api/review-decision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderNumber, decision, comment }),
+        body: JSON.stringify({ orderNumber, decision, comment, token }),
       });
       setDecisionMade(decision);
     } catch {
@@ -36,6 +49,20 @@ export default function ReviewPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (linkValid === null) {
+    return <p className="text-center mt-20 text-ink-light">Checking link…</p>;
+  }
+
+  if (linkValid === false) {
+    return (
+      <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-6 text-center">
+        <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" />
+        <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">Link Not Valid</h1>
+        <p className="text-ink-light max-w-sm">This review link has expired or isn't valid. Please contact us for a new one.</p>
+      </div>
+    );
   }
 
   if (loading) return <p className="text-center mt-20 text-ink-light">Loading proof…</p>;

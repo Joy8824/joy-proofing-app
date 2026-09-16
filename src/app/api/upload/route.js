@@ -1,4 +1,5 @@
 import { getDropboxClient } from '@/lib/dropbox';
+import { verifyOrderToken } from '@/lib/shopify';
 
 const FOLDER_CONFIG = {
   customer: { path: 'Customer', label: 'Customer uploaded graphic', linkTarget: 'folder' },
@@ -11,11 +12,22 @@ export async function POST(request) {
   const file = formData.get('file');
   const orderNumber = formData.get('orderNumber');
   const folderType = formData.get('folderType');
+  const token = formData.get('token');
   const notify = formData.get('notify') !== 'false';
 
   const config = FOLDER_CONFIG[folderType];
   if (!file || !orderNumber || !config) {
     return Response.json({ error: 'Missing or invalid data' }, { status: 400 });
+  }
+
+  try {
+    const isValid = await verifyOrderToken(orderNumber, token);
+    if (!isValid) {
+      return Response.json({ error: 'Invalid or expired link' }, { status: 403 });
+    }
+  } catch (err) {
+    console.error('Token verification error:', err);
+    return Response.json({ error: 'Could not verify link right now' }, { status: 500 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

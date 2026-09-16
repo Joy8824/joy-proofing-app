@@ -1,7 +1,19 @@
+import { verifyOrderToken } from '@/lib/shopify';
+
 export async function POST(request) {
-  const { orderNumber, decision, comment } = await request.json();
+  const { orderNumber, decision, comment, token } = await request.json();
   if (!orderNumber || !decision) {
     return Response.json({ error: 'Missing data' }, { status: 400 });
+  }
+
+  try {
+    const isValid = await verifyOrderToken(orderNumber, token);
+    if (!isValid) {
+      return Response.json({ error: 'Invalid or expired link' }, { status: 403 });
+    }
+  } catch (err) {
+    console.error('Token verification error:', err);
+    return Response.json({ error: 'Could not verify link right now' }, { status: 500 });
   }
 
   try {

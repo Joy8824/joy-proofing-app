@@ -1,10 +1,23 @@
 import { getDropboxClient } from '@/lib/dropbox';
+import { verifyOrderToken } from '@/lib/shopify';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const orderNumber = searchParams.get('orderNumber');
+  const token = searchParams.get('token');
+
   if (!orderNumber) {
     return Response.json({ error: 'Missing order number' }, { status: 400 });
+  }
+
+  try {
+    const isValid = await verifyOrderToken(orderNumber, token);
+    if (!isValid) {
+      return Response.json({ error: 'Invalid or expired link' }, { status: 403 });
+    }
+  } catch (err) {
+    console.error('Token verification error:', err);
+    return Response.json({ error: 'Could not verify link right now' }, { status: 500 });
   }
 
   const dbx = getDropboxClient();

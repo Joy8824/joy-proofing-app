@@ -1,50 +1,74 @@
-
 'use client';
-import { useParams } from 'next/navigation';
-import { useState, useRef } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 
-export default function UploadPage() {
+export default function FinishedPhotosPage() {
   const { orderNumber } = useParams();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
   const [status, setStatus] = useState('idle');
   const [msg, setMsg] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [linkValid, setLinkValid] = useState(null);
   const inputRef = useRef(null);
 
-async function uploadFiles(files) {
-  if (!files.length) return;
-  setStatus('uploading');
-  try {
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('orderNumber', orderNumber);
-      formData.append('folderType', 'finishedphotos');
-      formData.append('notify', 'false');
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Upload failed');
+  useEffect(() => {
+    if (!orderNumber) return;
+    fetch(`/api/verify-token?orderNumber=${orderNumber}&token=${token || ''}`)
+      .then((res) => res.json())
+      .then((data) => setLinkValid(data.valid))
+      .catch(() => setLinkValid(false));
+  }, [orderNumber, token]);
+
+  async function uploadFiles(files) {
+    if (!files.length) return;
+    setStatus('uploading');
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('orderNumber', orderNumber);
+        formData.append('folderType', 'finishedphotos');
+        formData.append('notify', 'false');
+        formData.append('token', token);
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Upload failed');
+        }
       }
+
+      await fetch('/api/notify-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber, folderType: 'finishedphotos' }),
+      });
+
+      setStatus('ok');
+    } catch (err) {
+      setStatus('err');
+      setMsg(err.message || 'Something went wrong. Try again.');
     }
-
-    await fetch('/api/notify-upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderNumber, folderType: 'finishedphotos' }), // 'finishedphotos' in that page
-    });
-
-    
-    setStatus('ok');
-  } catch (err) {
-    setStatus('err');
-    setMsg(err.message || 'Something went wrong. Try again.');
   }
-}
 
   function handleDrop(e) {
     e.preventDefault();
     setDragActive(false);
     uploadFiles(Array.from(e.dataTransfer.files || []));
+  }
+
+  if (linkValid === null) {
+    return <p className="text-center mt-20 text-ink-light">Checking link…</p>;
+  }
+
+  if (linkValid === false) {
+    return (
+      <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-6 text-center">
+        <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" />
+        <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">Link Not Valid</h1>
+        <p className="text-ink-light max-w-sm">This upload link has expired or isn't valid. Please contact us for a new one.</p>
+      </div>
+    );
   }
 
   return (
@@ -57,7 +81,7 @@ async function uploadFiles(files) {
           </div>
 
           <h1 className="font-display font-bold uppercase text-2xl text-ink text-center mb-1">
-            Upload your Finished Photos
+            Upload Finished Photos
           </h1>
           <p className="font-semibold text-ink-light text-center mb-8">Order #{orderNumber}</p>
 
@@ -67,7 +91,7 @@ async function uploadFiles(files) {
                 ✓
               </div>
               <p className="font-display font-bold uppercase text-lg text-ink mb-1">Got it!</p>
-              <p className="text-ink-light text-sm">We've received your file — we'll be in touch soon.</p>
+              <p className="text-ink-light text-sm">We've received your files — we'll be in touch soon.</p>
             </div>
           ) : (
             <div
@@ -91,8 +115,8 @@ async function uploadFiles(files) {
                 <p className="text-ink-light">Uploading…</p>
               ) : (
                 <>
-                  <p className="text-ink font-medium mb-1">Drop your files here, or click to browse</p>
-                  <p className="text-ink-light text-sm">PNG, JPG, OR PDF</p>
+                  <p className="text-ink font-medium mb-1">Drop your file here, or click to browse</p>
+                  <p className="text-ink-light text-sm">PNG, JPG, PDF, PSD, or AI</p>
                 </>
               )}
             </div>
