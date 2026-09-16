@@ -62,8 +62,13 @@ export async function verifyOrderToken(orderNumber, token) {
   `;
 
   const data = await shopifyAdminQuery(query, { q: `name:#${orderNumber}` });
-  const order = data?.data?.orders?.edges?.[0]?.node;
 
+  if (data.errors) {
+    throw new Error('Shopify API error: ' + JSON.stringify(data.errors));
+  }
+
+  const order = data?.data?.orders?.edges?.[0]?.node;
   if (!order || !order.metafield) return false;
-  return order.metafield.value === token;
+
+  return order.metafield.value.trim() === token.trim();
 }
