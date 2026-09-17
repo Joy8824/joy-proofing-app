@@ -12,6 +12,7 @@ export default function ProofUploadPage() {
   const [dragActive, setDragActive] = useState(false);
   const [linkValid, setLinkValid] = useState(null);
   const inputRef = useRef(null);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -21,26 +22,32 @@ export default function ProofUploadPage() {
       .catch(() => setLinkValid(false));
   }, [orderNumber, token]);
 
-  async function uploadFile(file) {
-    if (!files.length) return;
-    setStatus('uploading');
-    try {
-      for (const file of files) {
-        await uploadFileInChunks(file, orderNumber, 'proof', token);
-      }
+  async function uploadFiles(files) {
+  if (!files.length) return;
+  setStatus('uploading');
+  setProgress(0);
+  const fileProgress = new Array(files.length).fill(0);
 
-      await fetch('/api/notify-upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderNumber, folderType: 'proof' }),
-      });
+  try {
+    await Promise.all(files.map((file, i) =>
+      uploadFileInChunks(file, orderNumber, 'proof', token, (pct) => {
+        fileProgress[i] = pct;
+        setProgress(fileProgress.reduce((a, b) => a + b, 0) / files.length);
+      })
+    ));
 
-      setStatus('ok');
-    } catch (err) {
-      setStatus('err');
-      setMsg(err.message || 'Something went wrong. Try again.');
-    }
+    await fetch('/api/notify-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderNumber, folderType: 'proof' }),
+    });
+
+    setStatus('ok');
+  } catch (err) {
+    setStatus('err');
+    setMsg(err.message || 'Something went wrong. Try again.');
   }
+}
 
   function handleDrop(e) {
     e.preventDefault();
@@ -102,7 +109,7 @@ export default function ProofUploadPage() {
                 onChange={(e) => uploadFile(e.target.files?.[0])}
               />
               {status === 'uploading' ? (
-                <p className="text-ink-light">Uploading…</p>
+                <p className="text-ink-light">Uploading… {Math.round(progress * 100)}%</p>
               ) : (
                 <>
                   <p className="text-ink font-medium mb-1">Drop your file here, or click to browse</p>

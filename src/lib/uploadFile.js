@@ -1,6 +1,6 @@
-const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB
+const CHUNK_SIZE = 4 * 1024 * 1024;
 
-export async function uploadFileInChunks(file, orderNumber, folderType, token) {
+export async function uploadFileInChunks(file, orderNumber, folderType, token, onProgress) {
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   let sessionId = null;
   let offset = 0;
@@ -34,5 +34,6 @@ export async function uploadFileInChunks(file, orderNumber, folderType, token) {
     const data = await res.json();
     if (action === 'start') sessionId = data.sessionId;
     offset += chunk.size;
+    if (onProgress) onProgress(offset / file.size);
   }
 }

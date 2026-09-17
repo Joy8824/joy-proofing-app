@@ -8,7 +8,14 @@ const FOLDER_CONFIG = {
 };
 
 export async function POST(request) {
-  const formData = await request.formData();
+  let formData;
+  try {
+    formData = await request.formData();
+  } catch (err) {
+    console.error('FormData parse error:', err);
+    return Response.json({ error: 'Failed to read upload data' }, { status: 400 });
+  }
+
   const chunk = formData.get('chunk');
   const orderNumber = formData.get('orderNumber');
   const folderType = formData.get('folderType');
@@ -23,14 +30,16 @@ export async function POST(request) {
     return Response.json({ error: 'Missing or invalid data' }, { status: 400 });
   }
 
-  try {
-    const isValid = await verifyOrderToken(orderNumber, token);
-    if (!isValid) {
-      return Response.json({ error: 'Invalid or expired link' }, { status: 403 });
+  if (action === 'start' || action === 'single') {
+    try {
+      const isValid = await verifyOrderToken(orderNumber, token);
+      if (!isValid) {
+        return Response.json({ error: 'Invalid or expired link' }, { status: 403 });
+      }
+    } catch (err) {
+      console.error('Token verification error:', err);
+      return Response.json({ error: 'Could not verify link right now' }, { status: 500 });
     }
-  } catch (err) {
-    console.error('Token verification error:', err);
-    return Response.json({ error: 'Could not verify link right now' }, { status: 500 });
   }
 
   const buffer = Buffer.from(await chunk.arrayBuffer());
