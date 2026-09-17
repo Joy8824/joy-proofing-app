@@ -1,6 +1,7 @@
 'use client';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { uploadFileInChunks } from '@/lib/uploadFile';
 
 export default function UploadPage() {
   const { orderNumber } = useParams();
