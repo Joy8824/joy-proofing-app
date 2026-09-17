@@ -21,25 +21,23 @@ export default function ProofUploadPage() {
   }, [orderNumber, token]);
 
   async function uploadFile(file) {
-    if (!file) return;
+    if (!files.length) return;
     setStatus('uploading');
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('orderNumber', orderNumber);
-    formData.append('folderType', 'proof');
-    formData.append('token', token);
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (res.ok) {
-        setStatus('ok');
-      } else {
-        setStatus('err');
-        setMsg(data.error || 'Upload failed. Try again.');
+      for (const file of files) {
+        await uploadFileInChunks(file, orderNumber, 'proof', token);
       }
-    } catch {
+
+      await fetch('/api/notify-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber, folderType: 'proof' }),
+      });
+
+      setStatus('ok');
+    } catch (err) {
       setStatus('err');
-      setMsg('Something went wrong. Try again.');
+      setMsg(err.message || 'Something went wrong. Try again.');
     }
   }
 

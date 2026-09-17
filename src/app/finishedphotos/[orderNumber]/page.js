@@ -25,17 +25,7 @@ export default function FinishedPhotosPage() {
     setStatus('uploading');
     try {
       for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('orderNumber', orderNumber);
-        formData.append('folderType', 'finishedphotos');
-        formData.append('notify', 'false');
-        formData.append('token', token);
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || 'Upload failed');
-        }
+        await uploadFileInChunks(file, orderNumber, 'finishedphotos', token);
       }
 
       await fetch('/api/notify-upload', {
