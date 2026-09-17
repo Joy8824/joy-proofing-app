@@ -1,4 +1,4 @@
-import { verifyOrderToken } from '@/lib/shopify';
+import { verifyOrderToken, getOrderStage } from '@/lib/shopify';
 
 export async function POST(request) {
   const { orderNumber, decision, comment, token } = await request.json();
@@ -15,6 +15,16 @@ export async function POST(request) {
     console.error('Token verification error:', err);
     return Response.json({ error: 'Could not verify link right now' }, { status: 500 });
   }
+
+  try {
+  const stage = await getOrderStage(orderNumber);
+  if (stage && stage !== 'Proof Ready-Approve/Reject') {
+    return Response.json({ error: 'This proof has already been reviewed.' }, { status: 409 });
+  }
+} catch (err) {
+  console.error('Stage check error:', err);
+  return Response.json({ error: 'Could not verify current status' }, { status: 500 });
+}
 
   try {
     await fetch('https://hook.us2.make.com/f77r3lpcvi8x1dmlfh43axme7qrgn7l1', {

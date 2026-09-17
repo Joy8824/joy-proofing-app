@@ -1,5 +1,5 @@
 'use client';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { uploadFileInChunks } from '@/lib/uploadFile';
 
@@ -13,6 +13,7 @@ export default function UploadPage() {
   const [linkValid, setLinkValid] = useState(null);
   const inputRef = useRef(null);
   const [progress, setProgress] = useState(0);
+  const router = useRouter();
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -62,7 +63,8 @@ async function uploadFiles(files) {
   if (linkValid === false) {
     return (
       <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-6 text-center">
-        <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" />
+        <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
+        <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" /> </a>
         <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">Link Not Valid</h1>
         <p className="text-ink-light max-w-sm">This upload link has expired or isn't valid. Please contact us for a new one.</p>
       </div>
@@ -71,17 +73,22 @@ async function uploadFiles(files) {
 
   return (
     <div className="min-h-screen bg-paper flex flex-col">
-      <div className="h-2 bg-brand-green" />
+      <div className="h-6 bg-brand-green" />
       <div className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">
-            <img src="/logo.png" alt="Joy Displays" className="h-14" />
+            <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
+            <img src="/logo.png" alt="Joy Displays" className="h-14" /> </a>
           </div>
 
           <h1 className="font-display font-bold uppercase text-2xl text-ink text-center mb-1">
             Upload your graphic
           </h1>
-          <p className="font-semibold text-ink-light text-center mb-8">Order #{orderNumber}</p>
+          <p className="font-semibold text-ink-light text-center mb-2">Order #{orderNumber}</p>
+          <div className="text-center mb-8">
+            <button onClick={() => router.back()} className="text-sm text-ink-light underline hover:text-ink"> ← Back
+            </button>
+            </div>
 
           {status === 'ok' ? (
             <div className="rounded-2xl border border-line bg-paper-soft px-6 py-10 text-center">

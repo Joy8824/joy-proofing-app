@@ -1,5 +1,5 @@
 'use client';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function ReviewPage() {
@@ -8,12 +8,14 @@ export default function ReviewPage() {
   const token = searchParams.get('token');
 
   const [linkValid, setLinkValid] = useState(null);
+  const [alreadyDecided, setAlreadyDecided] = useState(false);
   const [proof, setProof] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [decisionMade, setDecisionMade] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -25,6 +27,18 @@ export default function ReviewPage() {
 
   useEffect(() => {
     if (!linkValid) return;
+    fetch(`/api/order-stage?orderNumber=${orderNumber}&token=${token || ''}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.stage && data.stage !== 'Proof Ready-Approve/Reject') {
+          setAlreadyDecided(true);
+        }
+      })
+      .catch(() => {});
+  }, [linkValid, orderNumber, token]);
+
+  useEffect(() => {
+    if (!linkValid || alreadyDecided) return;
     fetch(`/api/proof-file?orderNumber=${orderNumber}&token=${token || ''}`)
       .then((res) => {
         if (!res.ok) throw new Error('No proof found for this order yet.');
@@ -33,7 +47,7 @@ export default function ReviewPage() {
       .then(setProof)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [linkValid, orderNumber, token]);
+  }, [linkValid, alreadyDecided, orderNumber, token]);
 
   async function submitDecision(decision) {
     setSubmitting(true);
@@ -65,6 +79,18 @@ export default function ReviewPage() {
     );
   }
 
+  if (alreadyDecided) {
+    return (
+      <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-6 text-center">
+        <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
+          <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" />
+        </a>
+        <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">Already Reviewed</h1>
+        <p className="text-ink-light max-w-sm">A decision has already been submitted for this proof. If you have questions, please contact us.</p>
+      </div>
+    );
+  }
+
   if (loading) return <p className="text-center mt-20 text-ink-light">Loading proof…</p>;
   if (error) return <p className="text-center mt-20 text-error">{error}</p>;
 
@@ -86,12 +112,22 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-paper flex flex-col">
-      <div className="h-2 bg-brand-green" />
+      <div className="h-6 bg-brand-green" />
       <div className="flex-1 flex flex-col md:flex-row px-6 py-8 gap-6 max-w-[1400px] mx-auto w-full">
         <div className="flex-1 flex flex-col">
-          <h1 className="font-display font-bold uppercase text-xl text-ink mb-4">
+          <div className="flex justify-center mb-6">
+            <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
+              <img src="/logo.png" alt="Joy Displays" className="h-14" />
+            </a>
+          </div>
+          <h1 className="font-display font-bold uppercase text-xl text-ink text-center mb-2">
             Review Your Proof — Order #{orderNumber}
           </h1>
+          <div className="text-center mb-6">
+            <button onClick={() => router.back()} className="text-sm text-ink-light underline hover:text-ink">
+              ← Back
+            </button>
+          </div>
           <iframe src={proof.embedUrl} title="Proof" className="w-full flex-1 min-h-[70vh] rounded-2xl border border-line" />
         </div>
         <div className="w-full md:w-64 flex flex-col gap-4">

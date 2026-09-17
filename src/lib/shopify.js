@@ -72,3 +72,24 @@ export async function verifyOrderToken(orderNumber, token) {
 
   return order.metafield.value.trim() === token.trim();
 }
+export async function getOrderStage(orderNumber) {
+  const query = `
+    query FindOrder($q: String!) {
+      orders(first: 1, query: $q) {
+        edges {
+          node {
+            metafield(namespace: "custom", key: "order_stage") {
+              value
+            }
+          }
+        }
+      }
+    }
+  `;
+  const data = await shopifyAdminQuery(query, { q: `name:#${orderNumber}` });
+  if (data.errors) {
+    throw new Error('Shopify API error: ' + JSON.stringify(data.errors));
+  }
+  const order = data?.data?.orders?.edges?.[0]?.node;
+  return order?.metafield?.value || null;
+}

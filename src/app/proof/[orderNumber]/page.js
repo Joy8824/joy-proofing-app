@@ -1,5 +1,5 @@
 'use client';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { uploadFileInChunks } from '@/lib/uploadFile';
 
@@ -11,8 +11,9 @@ export default function ProofUploadPage() {
   const [msg, setMsg] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [linkValid, setLinkValid] = useState(null);
-  const inputRef = useRef(null);
   const [progress, setProgress] = useState(0);
+  const inputRef = useRef(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -22,32 +23,25 @@ export default function ProofUploadPage() {
       .catch(() => setLinkValid(false));
   }, [orderNumber, token]);
 
-  async function uploadFiles(files) {
-  if (!files.length) return;
-  setStatus('uploading');
-  setProgress(0);
-  const fileProgress = new Array(files.length).fill(0);
+  async function uploadFile(file) {
+    if (!file) return;
+    setStatus('uploading');
+    setProgress(0);
+    try {
+      await uploadFileInChunks(file, orderNumber, 'proof', token, (pct) => setProgress(pct));
 
-  try {
-    await Promise.all(files.map((file, i) =>
-      uploadFileInChunks(file, orderNumber, 'proof', token, (pct) => {
-        fileProgress[i] = pct;
-        setProgress(fileProgress.reduce((a, b) => a + b, 0) / files.length);
-      })
-    ));
+      await fetch('/api/notify-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber, folderType: 'proof' }),
+      });
 
-    await fetch('/api/notify-upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderNumber, folderType: 'proof' }),
-    });
-
-    setStatus('ok');
-  } catch (err) {
-    setStatus('err');
-    setMsg(err.message || 'Something went wrong. Try again.');
+      setStatus('ok');
+    } catch (err) {
+      setStatus('err');
+      setMsg(err.message || 'Something went wrong. Try again.');
+    }
   }
-}
 
   function handleDrop(e) {
     e.preventDefault();
@@ -62,7 +56,8 @@ export default function ProofUploadPage() {
   if (linkValid === false) {
     return (
       <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-6 text-center">
-        <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" />
+       <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
+        <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" /></a>
         <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">Link Not Valid</h1>
         <p className="text-ink-light max-w-sm">This upload link has expired or isn't valid. Please contact us for a new one.</p>
       </div>
@@ -71,17 +66,22 @@ export default function ProofUploadPage() {
 
   return (
     <div className="min-h-screen bg-paper flex flex-col">
-      <div className="h-2 bg-brand-green" />
+      <div className="h-6 bg-brand-green" />
       <div className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">
-            <img src="/logo.png" alt="Joy Displays" className="h-14" />
+             <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
+            <img src="/logo.png" alt="Joy Displays" className="h-14" /></a>
           </div>
 
           <h1 className="font-display font-bold uppercase text-2xl text-ink text-center mb-1">
             Upload your Proof
           </h1>
-          <p className="font-semibold text-ink-light text-center mb-8">Order #{orderNumber}</p>
+          <p className="font-semibold text-ink-light text-center mb-2">Order #{orderNumber}</p>
+          <div className="text-center mb-8">
+            <button onClick={() => router.back()} className="text-sm text-ink-light underline hover:text-ink"> ← Back
+            </button>
+            </div>
 
           {status === 'ok' ? (
             <div className="rounded-2xl border border-line bg-paper-soft px-6 py-10 text-center">
