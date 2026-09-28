@@ -1,5 +1,5 @@
 'use client';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function ReviewPage() {
@@ -26,16 +26,16 @@ export default function ReviewPage() {
   }, [orderNumber, token]);
 
   useEffect(() => {
-    if (!linkValid) return;
-    fetch(`/api/order-stage?orderNumber=${orderNumber}&token=${token || ''}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.stage && data.stage !== 'Proof Ready-Approve/Reject') {
-          setAlreadyDecided(true);
-        }
-      })
-      .catch(() => {});
-  }, [linkValid, orderNumber, token]);
+  if (!linkValid) return;
+  fetch(`/api/upload-status?orderNumber=${orderNumber}&token=${token || ''}`)
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.hasProof && data.decision) {
+        setAlreadyDecided(true);
+      }
+    })
+    .catch(() => {});
+}, [linkValid, orderNumber, token]);
 
   useEffect(() => {
     if (!linkValid || alreadyDecided) return;
