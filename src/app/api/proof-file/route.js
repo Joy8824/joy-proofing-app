@@ -25,7 +25,7 @@ export async function GET(request) {
 
   try {
     const result = await dbx.filesListFolder({ path: folderPath });
-    const files = result.result.entries.filter((e) => e['.tag'] === 'file');
+    const files = result.result.entries.filter((e) => e['.tag'] === 'file' && e.name !== '.decision.json');
     if (!files.length) {
       return Response.json({ error: 'No proof found' }, { status: 404 });
     }

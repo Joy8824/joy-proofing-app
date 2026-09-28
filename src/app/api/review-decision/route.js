@@ -1,4 +1,6 @@
 import { verifyOrderToken, getOrderStage } from '@/lib/shopify';
+import { verifyOrderToken, getOrderStage } from '@/lib/shopify';
+import { getDropboxClient } from '@/lib/dropbox';
 
 export async function POST(request) {
   const { orderNumber, decision, comment, token } = await request.json();
@@ -24,6 +26,17 @@ export async function POST(request) {
 } catch (err) {
   console.error('Stage check error:', err);
   return Response.json({ error: 'Could not verify current status' }, { status: 500 });
+}
+
+try {
+  const dbx = getDropboxClient();
+  await dbx.filesUpload({
+    path: `/${orderNumber}/Proof/.decision.json`,
+    contents: JSON.stringify({ decision, decidedAt: new Date().toISOString() }),
+    mode: { '.tag': 'overwrite' },
+  });
+} catch (err) {
+  console.error('Failed to write decision marker:', err);
 }
 
   try {

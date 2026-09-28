@@ -87,9 +87,14 @@ export default function ReviewPage() {
         </a>
         <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">Already Reviewed</h1>
         <p className="text-ink-light max-w-sm">A decision has already been submitted for this proof. If you have questions, please contact us.</p>
+        <a href="https://joydisplays.com" className="text-sm text-ink-light underline hover:text-ink mt-6">
+        ← Back to store
+      </a>
       </div>
     );
   }
+
+  
 
   if (loading) return <p className="text-center mt-20 text-ink-light">Loading proof…</p>;
   if (error) return <p className="text-center mt-20 text-error">{error}</p>;

@@ -1,5 +1,5 @@
 'use client';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { uploadFileInChunks } from '@/lib/uploadFile';
 
@@ -11,6 +11,8 @@ export default function UploadPage() {
   const [msg, setMsg] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [linkValid, setLinkValid] = useState(null);
+  const [uploadLocked, setUploadLocked] = useState(false);
+  const [lockedDecision, setLockedDecision] = useState(null);
   const inputRef = useRef(null);
   const [progress, setProgress] = useState(0);
 
@@ -22,32 +24,45 @@ export default function UploadPage() {
       .catch(() => setLinkValid(false));
   }, [orderNumber, token]);
 
-async function uploadFiles(files) {
-  if (!files.length) return;
-  setStatus('uploading');
-  setProgress(0);
-  const fileProgress = new Array(files.length).fill(0);
-
-  try {
-    await Promise.all(files.map((file, i) =>
-      uploadFileInChunks(file, orderNumber, 'customer', token, (pct) => {
-        fileProgress[i] = pct;
-        setProgress(fileProgress.reduce((a, b) => a + b, 0) / files.length);
+  useEffect(() => {
+    if (!linkValid) return;
+    fetch(`/api/upload-status?orderNumber=${orderNumber}&token=${token || ''}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.hasProof && data.decision !== 'rejected') {
+          setUploadLocked(true);
+          setLockedDecision(data.decision);
+        }
       })
-    ));
+      .catch(() => {});
+  }, [linkValid, orderNumber, token]);
 
-    await fetch('/api/notify-upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderNumber, folderType: 'customer' }),
-    });
+  async function uploadFiles(files) {
+    if (!files.length) return;
+    setStatus('uploading');
+    setProgress(0);
+    const fileProgress = new Array(files.length).fill(0);
 
-    setStatus('ok');
-  } catch (err) {
-    setStatus('err');
-    setMsg(err.message || 'Something went wrong. Try again.');
+    try {
+      await Promise.all(files.map((file, i) =>
+        uploadFileInChunks(file, orderNumber, 'customer', token, (pct) => {
+          fileProgress[i] = pct;
+          setProgress(fileProgress.reduce((a, b) => a + b, 0) / files.length);
+        })
+      ));
+
+      await fetch('/api/notify-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber, folderType: 'customer' }),
+      });
+
+      setStatus('ok');
+    } catch (err) {
+      setStatus('err');
+      setMsg(err.message || 'Something went wrong. Try again.');
+    }
   }
-}
 
   function handleDrop(e) {
     e.preventDefault();
@@ -63,9 +78,31 @@ async function uploadFiles(files) {
     return (
       <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-6 text-center">
         <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
-        <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" /> </a>
+          <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" />
+        </a>
         <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">Link Not Valid</h1>
         <p className="text-ink-light max-w-sm">This upload link has expired or isn't valid. Please contact us for a new one.</p>
+      </div>
+    );
+  }
+
+  if (uploadLocked) {
+    return (
+      <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-6 text-center">
+        <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
+          <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" />
+        </a>
+        <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">
+          {lockedDecision === 'approved' ? 'Proof Already Approved' : 'Proof Already Uploaded'}
+        </h1>
+        <p className="text-ink-light max-w-sm">
+          {lockedDecision === 'approved'
+            ? "This order's proof has been approved and is moving into production."
+            : "A proof has already been uploaded for this order and is awaiting review."}
+        </p>
+        <a href="https://joydisplays.com" className="text-sm text-ink-light underline hover:text-ink mt-6">
+          ← Back to store
+        </a>
       </div>
     );
   }
@@ -77,7 +114,8 @@ async function uploadFiles(files) {
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">
             <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
-            <img src="/logo.png" alt="Joy Displays" className="h-14" /> </a>
+              <img src="/logo.png" alt="Joy Displays" className="h-14" />
+            </a>
           </div>
 
           <h1 className="font-display font-bold uppercase text-2xl text-ink text-center mb-1">
@@ -86,9 +124,9 @@ async function uploadFiles(files) {
           <p className="font-semibold text-ink-light text-center mb-2">Order #{orderNumber}</p>
           <div className="text-center mb-8">
             <a href="https://joydisplays.com" className="text-sm text-ink-light underline hover:text-ink">
-            ← Back to store
+              ← Back to store
             </a>
-            </div>
+          </div>
 
           {status === 'ok' ? (
             <div className="rounded-2xl border border-line bg-paper-soft px-6 py-10 text-center">
