@@ -13,7 +13,6 @@ export default function ProofUploadPage() {
   const [linkValid, setLinkValid] = useState(null);
   const [progress, setProgress] = useState(0);
   const inputRef = useRef(null);
-  const router = useRouter();
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -78,10 +77,11 @@ export default function ProofUploadPage() {
             Upload your Proof
           </h1>
           <p className="font-semibold text-ink-light text-center mb-2">Order #{orderNumber}</p>
-          <div className="text-center mb-8">
-            <button onClick={() => router.back()} className="text-sm text-ink-light underline hover:text-ink"> ← Back
-            </button>
-            </div>
+          <div className="text-center mb-6">
+          <a href="https://joydisplays.com" className="text-sm text-ink-light underline hover:text-ink">
+          ← Back to store
+          </a>
+          </div>
 
           {status === 'ok' ? (
             <div className="rounded-2xl border border-line bg-paper-soft px-6 py-10 text-center">

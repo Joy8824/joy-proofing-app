@@ -13,7 +13,6 @@ export default function UploadPage() {
   const [linkValid, setLinkValid] = useState(null);
   const inputRef = useRef(null);
   const [progress, setProgress] = useState(0);
-  const router = useRouter();
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -86,8 +85,9 @@ async function uploadFiles(files) {
           </h1>
           <p className="font-semibold text-ink-light text-center mb-2">Order #{orderNumber}</p>
           <div className="text-center mb-8">
-            <button onClick={() => router.back()} className="text-sm text-ink-light underline hover:text-ink"> ← Back
-            </button>
+            <a href="https://joydisplays.com" className="text-sm text-ink-light underline hover:text-ink">
+            ← Back to store
+            </a>
             </div>
 
           {status === 'ok' ? (

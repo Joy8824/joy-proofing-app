@@ -15,7 +15,7 @@ export default function ReviewPage() {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [decisionMade, setDecisionMade] = useState(null);
-  const router = useRouter();
+
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -124,10 +124,11 @@ export default function ReviewPage() {
             Review Your Proof — Order #{orderNumber}
           </h1>
           <div className="text-center mb-6">
-            <button onClick={() => router.back()} className="text-sm text-ink-light underline hover:text-ink">
-              ← Back
-            </button>
+          <a href="https://joydisplays.com" className="text-sm text-ink-light underline hover:text-ink">
+          ← Back to store
+          </a>
           </div>
+          
           <iframe src={proof.embedUrl} title="Proof" className="w-full flex-1 min-h-[70vh] rounded-2xl border border-line" />
         </div>
         <div className="w-full md:w-64 flex flex-col gap-4">
