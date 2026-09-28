@@ -83,6 +83,12 @@ export default function ProofUploadPage() {
           </a>
           </div>
 
+          {status !== 'ok' && (
+            <p className="text-ink-light text-sm text-center mb-4">
+             Please upload one proof file at a time. If multiple are uploaded, only the first will be uploaded.
+            </p>
+          )}
+
           {status === 'ok' ? (
             <div className="rounded-2xl border border-line bg-paper-soft px-6 py-10 text-center">
               <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-brand-green flex items-center justify-center text-white text-xl">
