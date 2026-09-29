@@ -49,6 +49,13 @@ export async function POST(request) {
   try {
     if (action === 'single') {
       await dbx.filesUpload({ path: filePath, contents: buffer, mode: { '.tag': 'add' }, autorename: true });
+      if (folderType === 'proof') {
+        try {
+          await dbx.filesDeleteV2({ path: `/${orderNumber}/Proof/.decision.json` });
+        } catch {
+          // nothing to delete, that's fine
+        }
+      }
       return Response.json({ success: true });
     }
     if (action === 'start') {
@@ -65,6 +72,13 @@ export async function POST(request) {
         commit: { path: filePath, mode: { '.tag': 'add' }, autorename: true },
         contents: buffer,
       });
+      if (folderType === 'proof') {
+        try {
+          await dbx.filesDeleteV2({ path: `/${orderNumber}/Proof/.decision.json` });
+        } catch {
+          // nothing to delete, that's fine
+        }
+      }
       return Response.json({ success: true });
     }
     return Response.json({ error: 'Unknown action' }, { status: 400 });
