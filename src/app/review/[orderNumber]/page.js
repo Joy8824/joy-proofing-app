@@ -50,20 +50,24 @@ export default function ReviewPage() {
   }, [linkValid, alreadyDecided, orderNumber, token]);
 
   async function submitDecision(decision) {
-    setSubmitting(true);
-    try {
-      await fetch('/api/review-decision', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderNumber, decision, comment, token }),
-      });
-      setDecisionMade(decision);
-    } catch {
-      setError('Something went wrong submitting your decision. Please try again.');
-    } finally {
-      setSubmitting(false);
+  setSubmitting(true);
+  try {
+    const res = await fetch('/api/review-decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderNumber, decision, comment, token }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Something went wrong.');
     }
+    setDecisionMade(decision);
+  } catch (err) {
+    setError(err.message || 'Something went wrong submitting your decision. Please try again.');
+  } finally {
+    setSubmitting(false);
   }
+}
 
   if (linkValid === null) {
     return <p className="text-center mt-20 text-ink-light">Checking link…</p>;

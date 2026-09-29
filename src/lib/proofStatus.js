@@ -31,7 +31,15 @@ export async function getProofStatus(orderNumber) {
 
   try {
     const download = await dbx.filesDownload({ path: `${folderPath}/.decision.json` });
-    const marker = JSON.parse(download.result.fileBinary.toString('utf8'));
+    let text;
+    if (download.result.fileBlob) {
+      text = await download.result.fileBlob.text();
+    } else if (download.result.fileBinary) {
+      text = download.result.fileBinary.toString('utf8');
+    } else {
+      throw new Error('No file content in Dropbox response');
+    }
+    const marker = JSON.parse(text);
 
     const decisionTime = new Date(marker.decidedAt);
     const proofTime = new Date(latestProof.server_modified);
