@@ -83,7 +83,7 @@ export default function ProofUploadPage() {
           </a>
           </div>
           <div className="text-center mb-6">
-          <a href="https://www.dropbox.com/home/Apps/joy-displays-proofing/{orderNumber}/Proof" className="text-sm text-ink-light underline hover:text-ink">
+          <a href="https://www.dropbox.com/home/Apps/joy-displays-proofing/${orderNumber}/Proof" className="text-sm text-ink-light underline hover:text-ink">
           {orderNumber} - Dropbox Proof Folder
           </a>
           </div>
