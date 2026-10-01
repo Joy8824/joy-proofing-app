@@ -32,7 +32,7 @@ export default function ProofUploadPage() {
       await fetch('/api/notify-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderNumber, folderType: 'proof' }),
+        body: JSON.stringify({ orderNumber, folderType: 'proof', fileName: file.name }),
       });
 
       setStatus('ok');
