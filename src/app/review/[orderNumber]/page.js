@@ -135,6 +135,7 @@ export default function ReviewPage() {
           <div className="text-center mb-6">
           <a href="https://shopify.com/67977838726/account/orders" className="text-sm text-ink-light underline hover:text-ink">
           ← Back to your orders
+          </a>
           </div>
           
           <iframe src={proof.embedUrl} title="Proof" className="w-full flex-1 min-h-[70vh] rounded-2xl border border-line" />
