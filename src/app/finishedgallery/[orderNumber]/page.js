@@ -67,8 +67,8 @@ export default function FinishedGalleryPage() {
           </h1>
           <p className="font-semibold text-ink-light text-center mb-2">Order #{orderNumber}</p>
           <div className="text-center mb-8">
-            <a href="https://joydisplays.com" className="text-sm text-ink-light underline hover:text-ink">
-              ← Back to store
+            <a href="https://shopify.com/67977838726/account/orders" className="text-sm text-ink-light underline hover:text-ink">
+              ← Back to your orders
             </a>
           </div>
 

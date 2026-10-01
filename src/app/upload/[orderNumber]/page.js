@@ -100,8 +100,8 @@ export default function UploadPage() {
             ? "This order's proof has been approved and is moving into production."
             : "A proof has already been uploaded for this order and is awaiting review."}
         </p>
-        <a href="https://joydisplays.com" className="text-sm text-ink-light underline hover:text-ink mt-6">
-          ← Back to store
+        <a href="https://shopify.com/67977838726/account/orders" className="text-sm text-ink-light underline hover:text-ink mt-6">
+          ← Back to your orders
         </a>
       </div>
     );
