@@ -133,9 +133,8 @@ export default function ReviewPage() {
             Review Your Proof — Order #{orderNumber}
           </h1>
           <div className="text-center mb-6">
-          <a href="https://joydisplays.com" className="text-sm text-ink-light underline hover:text-ink">
-          ← Back to store
-          </a>
+          <a href="https://shopify.com/67977838726/account/orders" className="text-sm text-ink-light underline hover:text-ink">
+          ← Back to your orders
           </div>
           
           <iframe src={proof.embedUrl} title="Proof" className="w-full flex-1 min-h-[70vh] rounded-2xl border border-line" />
