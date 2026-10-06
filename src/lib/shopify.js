@@ -93,3 +93,59 @@ export async function getOrderStage(orderNumber) {
   const order = data?.data?.orders?.edges?.[0]?.node;
   return order?.metafield?.value || null;
 }
+
+function isHardwareOnly(value) {
+  if (!value) return false;
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.includes('Hardware Only');
+  } catch {
+    // not JSON, so it's a plain text value
+  }
+  return value.trim() === 'Hardware Only';
+}
+
+export async function getOrderProducts(orderNumber) {
+  const query = `
+    query OrderLines($q: String!) {
+      orders(first: 1, query: $q) {
+        edges {
+          node {
+            name
+            lineItems(first: 50) {
+              edges {
+                node {
+                  id
+                  name
+                  quantity
+                  product {
+                    metafield(namespace: "custom", key: "product_type") {
+                      value
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const data = await shopifyAdminQuery(query, { q: `name:#${orderNumber}` });
+  if (data.errors) {
+    throw new Error('Shopify API error: ' + JSON.stringify(data.errors));
+  }
+
+  const order = data?.data?.orders?.edges?.[0]?.node;
+  if (!order) return null;
+
+  const items = order.lineItems.edges.map(({ node }) => ({
+    id: node.id,
+    name: node.name,
+    quantity: node.quantity,
+    hardwareOnly: isHardwareOnly(node.product?.metafield?.value),
+  }));
+
+  return { orderName: order.name, items };
+}
