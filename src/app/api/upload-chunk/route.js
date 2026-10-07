@@ -1,5 +1,6 @@
 import { getDropboxClient } from '@/lib/dropbox';
-import { verifyOrderToken } from '@/lib/shopify';
+import { verifyOrderToken, getOrderStage } from '@/lib/shopify';
+import { PROOF_UPLOAD_STAGE } from '@/lib/proofStage';
 
 const FOLDER_CONFIG = {
   customer: { path: 'Customer' },
@@ -30,11 +31,20 @@ export async function POST(request) {
     return Response.json({ error: 'Missing or invalid data' }, { status: 400 });
   }
 
-  if (action === 'start' || action === 'single') {
+    if (action === 'start' || action === 'single') {
     try {
       const isValid = await verifyOrderToken(orderNumber, token);
       if (!isValid) {
         return Response.json({ error: 'Invalid or expired link' }, { status: 403 });
+      }
+      if (folderType === 'proof') {
+        const stage = await getOrderStage(orderNumber);
+        if (stage !== PROOF_UPLOAD_STAGE) {
+          return Response.json(
+            { error: 'This order is not ready for a proof upload yet.' },
+            { status: 403 }
+          );
+        }
       }
     } catch (err) {
       console.error('Token verification error:', err);

@@ -11,15 +11,21 @@ export default function ProofUploadPage() {
   const [msg, setMsg] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [linkValid, setLinkValid] = useState(null);
+  const [canUpload, setCanUpload] = useState(null);
   const [progress, setProgress] = useState(0);
   const inputRef = useRef(null);
 
-  useEffect(() => {
+    useEffect(() => {
     if (!orderNumber) return;
     fetch(`/api/verify-token?orderNumber=${orderNumber}&token=${token || ''}`)
       .then((res) => res.json())
       .then((data) => setLinkValid(data.valid))
       .catch(() => setLinkValid(false));
+
+    fetch(`/api/proof-allowed?orderNumber=${orderNumber}&token=${token || ''}`)
+      .then((res) => res.json())
+      .then((data) => setCanUpload(Boolean(data.allowed)))
+      .catch(() => setCanUpload(false));
   }, [orderNumber, token]);
 
   async function uploadFile(file) {
@@ -48,7 +54,7 @@ export default function ProofUploadPage() {
     uploadFile(e.dataTransfer.files?.[0]);
   }
 
-  if (linkValid === null) {
+   if (linkValid === null || canUpload === null) {
     return <p className="text-center mt-20 text-ink-light">Checking link…</p>;
   }
 
@@ -59,6 +65,20 @@ export default function ProofUploadPage() {
         <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" /></a>
         <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">Link Not Valid</h1>
         <p className="text-ink-light max-w-sm">This upload link has expired or isn't valid. Please contact us for a new one.</p>
+      </div>
+    );
+  }
+
+    if (!canUpload) {
+    return (
+      <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-6 text-center">
+        <a href="https://joydisplays.com" target="_blank" rel="noopener noreferrer">
+          <img src="/logo.png" alt="Joy Displays" className="h-14 mb-8" />
+        </a>
+        <h1 className="font-display font-bold uppercase text-2xl text-ink mb-2">Not Ready For A Proof</h1>
+        <p className="text-ink-light max-w-sm">
+          Order #{orderNumber} isn't at the proofing stage yet. Set it to Review in Monday, then reload this page.
+        </p>
       </div>
     );
   }
@@ -83,8 +103,7 @@ export default function ProofUploadPage() {
           </a>
           </div>
           <div className="text-center mb-6">
-          <a href="https://www.dropbox.com/home/Apps/joy-displays-proofing/${orderNumber}/Proof" className="text-sm text-ink-light underline hover:text-ink">
-          {orderNumber} - Dropbox Proof Folder
+          <a href={`https://www.dropbox.com/home/Apps/joy-displays-proofing/${orderNumber}/Proof`} className="text-sm text-ink-light underline hover:text-ink">
           </a>
           </div>
 

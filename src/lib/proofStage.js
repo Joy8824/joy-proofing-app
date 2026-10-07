@@ -1,0 +1,1 @@
+export const PROOF_UPLOAD_STAGE = 'Being Reviewed';
