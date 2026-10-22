@@ -115,6 +115,12 @@ export default function ReviewPage() {
             ? "Thanks! We'll get your order into production."
             : "We've received your feedback and will follow up on next steps."}
         </p>
+        <a
+          href="https://shopify.com/67977838726/account/orders"
+          className="text-sm text-ink-light underline hover:text-ink mt-6"
+        >
+          ← Back to your orders
+        </a>
       </div>
     );
   }
