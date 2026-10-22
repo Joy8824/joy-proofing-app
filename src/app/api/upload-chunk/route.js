@@ -8,6 +8,13 @@ const FOLDER_CONFIG = {
   finishedphotos: { path: 'Finished Photos' },
 };
 
+function safeName(name) {
+  return String(name)
+    .replace(/[\\/\u0000-\u001f]/g, '_')
+    .replace(/^\.+/, '')
+    .slice(0, 150);
+}
+
 export async function POST(request) {
   let formData;
   try {
@@ -20,7 +27,7 @@ export async function POST(request) {
   const chunk = formData.get('chunk');
   const orderNumber = formData.get('orderNumber');
   const folderType = formData.get('folderType');
-  const fileName = formData.get('fileName');
+  const fileName = safeName(formData.get('fileName') || '');
   const token = formData.get('token');
   const offset = Number(formData.get('offset'));
   const action = formData.get('action');
@@ -30,8 +37,11 @@ export async function POST(request) {
   if (!chunk || !orderNumber || !config || !fileName) {
     return Response.json({ error: 'Missing or invalid data' }, { status: 400 });
   }
+  if (!/^[A-Za-z0-9-]{1,20}$/.test(String(orderNumber))) {
+  return Response.json({ error: 'Missing or invalid data' }, { status: 400 });
+}
 
-    if (action === 'start' || action === 'single') {
+    if (action === 'start' || action === 'single' || action === 'finish') {
     try {
       const isValid = await verifyOrderToken(orderNumber, token);
       if (!isValid) {
@@ -50,6 +60,7 @@ export async function POST(request) {
       console.error('Token verification error:', err);
       return Response.json({ error: 'Could not verify link right now' }, { status: 500 });
     }
+
   }
 
   const buffer = Buffer.from(await chunk.arrayBuffer());
