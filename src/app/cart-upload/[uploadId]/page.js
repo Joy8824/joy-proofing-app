@@ -1,7 +1,7 @@
 'use client';
 import { useParams } from 'next/navigation';
-import { useState, useRef } from 'react';
 import { uploadPendingFile } from '@/lib/uploadPendingFile';
+import { useState, useRef, useEffect } from 'react';
 
 const ID_RE = /^[a-zA-Z0-9-]{20,64}$/;
 
@@ -13,6 +13,22 @@ export default function CartUploadPage() {
   const [dragActive, setDragActive] = useState(false);
   const [uploaded, setUploaded] = useState([]);
   const inputRef = useRef(null);
+
+
+    const [cartUrl, setCartUrl] = useState('https://test-47rua0fn.myshopify.com/cart');
+
+  useEffect(() => {
+    try {
+      const u = new URL(document.referrer);
+      const ok =
+        u.hostname === 'joydisplays.com' ||
+        u.hostname.endsWith('.joydisplays.com') ||
+        u.hostname.endsWith('.myshopify.com');
+      if (ok) setCartUrl(`${u.origin}/cart`);
+    } catch {
+      // no referrer: keep the default
+    }
+  }, []);
 
   async function uploadFiles(files) {
     if (!files.length) return;
@@ -64,9 +80,14 @@ export default function CartUploadPage() {
           <h1 className="font-display font-bold uppercase text-2xl text-ink text-center mb-1">
             Upload your graphics
           </h1>
-          <p className="text-ink-light text-center text-sm mb-8">
+          <p className="text-ink-light text-center text-sm mb-2">
             Add your files now and keep shopping. They'll be attached to your order when you check out.
           </p>
+          <div className="text-center mb-8">
+            <a href={cartUrl} className="text-sm text-ink-light underline hover:text-ink">
+              ← Back to your cart
+            </a>
+          </div>
 
           <div
             onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
@@ -111,9 +132,12 @@ export default function CartUploadPage() {
                   </li>
                 ))}
               </ul>
-              <p className="text-ink-light text-xs mt-3">
-                You can close this tab and return to your cart.
-              </p>
+              <a
+                href={cartUrl}
+                className="inline-block mt-4 rounded-xl bg-brand-green text-white font-semibold uppercase text-sm px-5 py-3"
+              >
+                Back to your cart
+              </a>
             </div>
           )}
         </div>
