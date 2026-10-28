@@ -143,8 +143,13 @@ export default function ReviewPage() {
           ← Back to your orders
           </a>
           </div>
+          <div className="text-center mb-6">
+            <a href={proof.embedUrl} target="_blank" rel="noreferrer" className="underline text-sm"> Open Proof Full Size </a>
+          </div>
           
-          <iframe src={proof.embedUrl} title="Proof" className="w-full flex-1 min-h-[70vh] rounded-2xl border border-line" />
+          
+
+          <iframe src={`${proof.embedUrl.split('#')[0]}#view=Fit&toolbar=1`} title="Proof" className="w-full flex-1 min-h-[70vh] rounded-2xl border border-line" />
         </div>
         <div className="w-full md:w-64 flex flex-col gap-4">
           <div>

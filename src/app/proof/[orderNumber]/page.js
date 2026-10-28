@@ -98,11 +98,6 @@ export default function ProofUploadPage() {
           </h1>
           <p className="font-semibold text-ink-light text-center mb-2">Order #{orderNumber}</p>
           <div className="text-center mb-6">
-          <a href="https://shopify.com/67977838726/account/orders" className="text-sm text-ink-light underline hover:text-ink">
-          ← Back to your orders
-          </a>
-          </div>
-          <div className="text-center mb-6">
           <a href={`https://www.dropbox.com/home/Apps/joy-displays-proofing/${orderNumber}/Proof`} className="text-sm text-ink-light underline hover:text-ink">
           </a>
           </div>
