@@ -115,7 +115,7 @@ export default function ProofUploadPage() {
                 ✓
               </div>
               <p className="font-display font-bold uppercase text-lg text-ink mb-1">Got it!</p>
-              <p className="text-ink-light text-sm">We've received your file — we'll be in touch soon.</p>
+              <p className="text-ink-light text-sm">We've received your file — You can access it in dropbox or monday.</p>
             </div>
           ) : (
             <div
