@@ -1,36 +1,146 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Joy Displays Proofing App
 
-## Getting Started
+A Next.js app that handles the graphics and proofing side of a Joy Displays order: customers upload their artwork, staff upload proofs, customers approve or reject them, and everything is stored in Dropbox. Shopify holds the order data, and Make.com handles the emails and Monday updates.
 
-First, run the development server:
+- **Hosting:** Vercel (live at `proofs.joydisplays.online`; the older `joy-proofing-app.vercel.app` address still works)
+- **Stack:** Next.js 16 (App Router, Turbopack), React 19, Tailwind CSS 4, Dropbox SDK
+- **Related repo:** `order-stages` (Joy8824/order-stages), the Shopify customer account extension that shows the order stage, timeline, and the Upload, Review and Download buttons on the customer's order page.
+
+## How it fits together
+
+1. **Order created (Shopify → Make).** Make sets the order metafields (`custom.order_stage`, `custom.access_token`, upload link and so on). Every customer link carries that per-order token.
+2. **Customer uploads graphics.** Either before buying (cart "Upload graphics" button → `/cart-upload/...` → Dropbox `/Pending/{uploadId}`) or after (`/upload/{order}`). Make moves pending uploads to the order's Customer folder when the order is created.
+3. **Staff upload a proof** (`/proof/{order}` or the staff proofing pages). The app tells Make, and Make updates Monday and emails the customer.
+4. **Customer reviews** (`/review/{order}`): approves or rejects. The app writes a decision marker to Dropbox and tells Make.
+5. **Customer downloads the approved proof** (`/download/{order}`).
+6. **Finished photos** are uploaded and shown in a gallery (`/finishedphotos`, `/finishedgallery`).
+
+## Running it locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create a `.env.local` file in the project root (it is git-ignored, never commit it) with these variables:
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+| Variable | What it is |
+| --- | --- |
+| `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET`, `DROPBOX_REFRESH_TOKEN` | Dropbox app credentials (see `src/lib/dropbox.js`) |
+| `SHOPIFY_STORE_DOMAIN` | The store's `*.myshopify.com` domain |
+| `SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET` | Shopify app credentials used to read orders (`src/lib/shopify.js`) |
+| `STAFF_KEY` | Shared secret for the staff pages and their API routes |
+| `CRON_SECRET` | Secret for the daily cleanup route (Vercel Cron sends it automatically) |
+| `PENDING_RETENTION_HOURS` | Optional. Hours before an unpurchased pending upload is deleted. Default 24 |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The same variables must exist in Vercel under **Settings → Environment Variables**.
 
-## Learn More
+## Deploying
 
-To learn more about Next.js, take a look at the following resources:
+Pushes to `main` deploy to Vercel. `vercel.json` schedules the pending-upload cleanup once a day (8:00 UTC).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Dropbox folder layout
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+/Pending/{uploadId}/                 cart uploads made before an order exists
+/{orderNumber}/Customer/             the customer's graphics
+/{orderNumber}/Proof/                proof files, plus .decision.json (approve/reject marker)
+/{orderNumber}/Proof/{product}/      per-product proof sets: set-1-graphic.png, set-1-overlay.png ...
+/{orderNumber}/Finished Photos/      photos of the finished order
+/{orderNumber}/.proof-state.json     staff review quantities and the DONE flag
+```
 
-## Deploy on Vercel
+Product folder names are built from the product name and the last 6 digits of the line item id (`src/lib/proofFolders.js`).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Order stages the app cares about
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The stage lives in the order metafield `custom.order_stage`.
+
+- `Being Reviewed`: staff may upload a proof (`/proof` and `/api/upload-chunk` check this).
+- `Proof Ready-Approve/Reject`: the customer may approve or reject (`/api/review-decision` checks this).
+
+## Security model
+
+- **Customer links** carry `?token=` and are checked against the order's `custom.access_token` metafield (`verifyOrderToken` in `src/lib/shopify.js`).
+- **Staff pages and API routes** take `?key=` and compare it to `STAFF_KEY` (`src/lib/staffAuth.js`).
+- **Cart uploads** are public by design but limited: IDs must be 20–64 letters, digits or dashes, a fixed list of file types, at most 20 files and 500 MB per cart.
+- **The cleanup route** requires `Authorization: Bearer {CRON_SECRET}`.
+
+## Project map
+
+### Root files
+
+| File | What it does |
+| --- | --- |
+| `package.json`, `package-lock.json` | Dependencies and scripts (`dev`, `build`, `start`, `lint`) |
+| `next.config.mjs` | Next.js settings (sets the Turbopack root) |
+| `vercel.json` | Cron schedule for `/api/cleanup-pending` |
+| `eslint.config.mjs`, `postcss.config.mjs`, `jsconfig.json` | Lint, Tailwind/PostCSS and the `@/` import alias |
+| `.gitignore` | Keeps `node_modules`, `.next` and `.env*` out of Git |
+| `AGENTS.md`, `CLAUDE.md` | Notes for AI coding tools (generated by Next.js) |
+| `.env.local` | Local secrets, not in Git |
+| `public/` | `logo.png` (used in pages and emails); the other SVGs are leftovers from the Next.js template |
+
+### Pages and routes (`src/app`)
+
+| Path | Who uses it | What it does |
+| --- | --- | --- |
+| `layout.js`, `globals.css` | everyone | Page shell, fonts (Montserrat) and brand colors |
+| `page.js` | nobody | Leftover starter page from `create-next-app` |
+| `upload/[orderNumber]` | customer | Upload graphics for an order into its Customer folder. Locks after a proof exists unless it was rejected |
+| `cart-upload/[uploadId]` | customer | Upload graphics from the cart before purchase into `/Pending/{uploadId}`, with a back-to-cart link |
+| `proof/[orderNumber]` | staff | Upload a proof file for an order. Only allowed at stage Being Reviewed |
+| `review/[orderNumber]` | customer | Shows the latest proof with Approve and Reject buttons and a notes box |
+| `download/[orderNumber]` | customer | Route that redirects to a download of the latest proof |
+| `finishedphotos/[orderNumber]` | staff | Upload photos of the finished order |
+| `finishedgallery/[orderNumber]` | customer | Gallery of the finished photos |
+| `staff/proofing/[orderNumber]` | staff | Upload proof sets per product: a graphic and an overlay image (PNG/JPG, resized to 900 px) |
+| `staff/review/[orderNumber]` | staff | Review each set, enter quantities per set, and mark the order DONE |
+| `staff/notifications` | staff | Keeps a tab open that plays a sound and shows a browser notification when a new customer graphic arrives |
+
+### API routes (`src/app/api`)
+
+| Route | Access | What it does |
+| --- | --- | --- |
+| `upload-chunk` | order token | Chunked (4 MB) file upload into Customer, Proof or Finished Photos. Proof uploads also check the stage |
+| `upload` | order token | Single-request upload alternative; can notify Make |
+| `notify-upload` | none | Creates Dropbox share links and calls the Make "Proofing app" webhook |
+| `pending-upload-chunk` | public, validated | Chunked upload into `/Pending/{uploadId}` with file type and size limits |
+| `pending-status` | public | Says whether `/Pending/{uploadId}` has files. Make uses it at order time |
+| `cleanup-pending` | `CRON_SECRET` | Deletes pending folders older than the retention time (24 h). Supports `?dryRun=1` |
+| `verify-token` | order token | Returns whether a link's token is valid |
+| `order-stage` | order token | Returns the order's current stage |
+| `proof-allowed` | order token | Returns whether a proof upload is allowed right now |
+| `upload-status` | order token | Returns whether a proof exists and whether it was approved or rejected |
+| `proof-file` | order token | Returns the latest proof's file name and embed link |
+| `review-decision` | order token | Records approve or reject in Dropbox and calls the Make decision webhook |
+| `finished-photos` | order token | Returns links to the finished photos |
+| `order-products` | staff key | Lists an order's products from Shopify and which are hardware only |
+| `staff-proof-sets` | staff key | Lists each product's uploaded proof sets with temporary image links |
+| `staff-proof-upload` | staff key | Uploads one proof image (graphic or overlay) for a product and set |
+| `staff-proof-state` | staff key | Reads or saves set quantities, and marks DONE after checking everything adds up |
+| `recent-uploads` | none | Lists customer files uploaded in the last 2 minutes (used by `staff/notifications`) |
+| `test-dropbox` | none | Debug route that lists the Dropbox root folder |
+
+### Shared code (`src/lib`)
+
+| File | What it does |
+| --- | --- |
+| `dropbox.js` | Creates the Dropbox client from the environment variables |
+| `shopify.js` | Shopify Admin API helpers: access token, token check, order stage, order products |
+| `staffAuth.js` | Constant-time check of the staff key |
+| `proofStage.js` | The stage name that allows proof uploads (`Being Reviewed`) |
+| `proofFolders.js` | Builds each product's folder name for proof sets |
+| `proofState.js` | Reads and writes `.proof-state.json`, and lists a product's proof sets |
+| `proofCheck.js` | Checks that every product has complete sets and quantities matching the order |
+| `proofStatus.js` | Works out if an order has a proof and whether the latest was decided |
+| `resizeImage.js` | Shrinks proof images to 900 px in the browser before upload |
+| `uploadFile.js` | Browser helper that uploads a file in 4 MB chunks to `/api/upload-chunk` |
+| `uploadPendingFile.js` | Same, for cart uploads to `/api/pending-upload-chunk` |
+
+## Things to know
+
+- **Make webhook addresses are written directly in the code** (`notify-upload`, `upload` and `review-decision`). Moving them to environment variables would make them easier to change.
+- **`recent-uploads` and `test-dropbox` have no access check.** `staff/notifications` depends on `recent-uploads`.
+- **The cart upload page's default back-to-cart address is the test store.** It uses the page the customer came from when it can, so check this default before going live.
+- **The Shopify account link** on the review page (`shopify.com/67977838726/account/orders`) is specific to this store.
