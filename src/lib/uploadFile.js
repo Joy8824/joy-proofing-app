@@ -1,6 +1,8 @@
 const CHUNK_SIZE = 4 * 1024 * 1024;
 
-export async function uploadFileInChunks(file, orderNumber, folderType, token, onProgress) {
+// options.itemFolder (optional): upload into that item's own subfolder of the
+// order's Customer folder. Leave it out for the usual single-folder upload.
+export async function uploadFileInChunks(file, orderNumber, folderType, token, onProgress, options = {}) {
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   let sessionId = null;
   let offset = 0;
@@ -24,6 +26,7 @@ export async function uploadFileInChunks(file, orderNumber, folderType, token, o
     formData.append('token', token);
     formData.append('offset', String(offset));
     formData.append('action', action);
+    if (options.itemFolder) formData.append('itemFolder', options.itemFolder);
     if (sessionId) formData.append('sessionId', sessionId);
 
     const res = await fetch('/api/upload-chunk', { method: 'POST', body: formData });

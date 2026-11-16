@@ -105,6 +105,35 @@ function isHardwareOnly(value) {
   return value.trim() === 'Hardware Only';
 }
 
+// Reads a metafield that may be stored as plain text ("Yes") or as a list
+// (["Yes"]) and returns its values, trimmed and lower-cased.
+function metafieldValues(value) {
+  if (!value) return [];
+  let values = [value];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) values = parsed;
+  } catch {
+    // not JSON, so it's a plain text value
+  }
+  return values.map((v) => String(v).trim().toLowerCase());
+}
+
+// Product types that never need a customer graphic. A product with the
+// metafield empty is treated as needing one.
+const NO_GRAPHIC_TYPES = ['hardware only', 'attention needed', 'graphic services'];
+
+// An item needs a customer graphic unless its product type says otherwise, or
+// its Attention Needed or Graphic Services metafield is set to Yes.
+function needsGraphics(product) {
+  if (metafieldValues(product?.metafield?.value).some((type) => NO_GRAPHIC_TYPES.includes(type))) {
+    return false;
+  }
+  if (metafieldValues(product?.attentionNeeded?.value).includes('yes')) return false;
+  if (metafieldValues(product?.graphicServices?.value).includes('yes')) return false;
+  return true;
+}
+
 export async function getOrderProducts(orderNumber) {
   const query = `
     query OrderLines($q: String!) {
@@ -120,6 +149,12 @@ export async function getOrderProducts(orderNumber) {
                   quantity
                   product {
                     metafield(namespace: "custom", key: "product_type") {
+                      value
+                    }
+                    attentionNeeded: metafield(namespace: "custom", key: "attention_needed") {
+                      value
+                    }
+                    graphicServices: metafield(namespace: "custom", key: "graphic_services") {
                       value
                     }
                   }
@@ -145,6 +180,7 @@ export async function getOrderProducts(orderNumber) {
     name: node.name,
     quantity: node.quantity,
     hardwareOnly: isHardwareOnly(node.product?.metafield?.value),
+    needsGraphics: needsGraphics(node.product),
   }));
 
   return { orderName: order.name, items };

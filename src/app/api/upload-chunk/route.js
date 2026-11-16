@@ -1,5 +1,6 @@
 import { getDropboxClient } from '@/lib/dropbox';
-import { verifyOrderToken, getOrderStage } from '@/lib/shopify';
+import { verifyOrderToken, getOrderStage, getOrderProducts } from '@/lib/shopify';
+import { lineFolderName } from '@/lib/proofFolders';
 import { PROOF_UPLOAD_STAGE } from '@/lib/proofStage';
 
 const FOLDER_CONFIG = {
@@ -32,6 +33,8 @@ export async function POST(request) {
   const offset = Number(formData.get('offset'));
   const action = formData.get('action');
   const sessionId = formData.get('sessionId');
+  // Optional: an item's own subfolder inside the Customer folder (per-item uploads).
+  const itemFolder = formData.get('itemFolder') ? String(formData.get('itemFolder')) : '';
 
   const config = FOLDER_CONFIG[folderType];
   if (!chunk || !orderNumber || !config || !fileName) {
@@ -41,11 +44,25 @@ export async function POST(request) {
   return Response.json({ error: 'Missing or invalid data' }, { status: 400 });
 }
 
+  if (itemFolder && (folderType !== 'customer' || !/^[a-z0-9-]{1,60}$/.test(itemFolder))) {
+    return Response.json({ error: 'Missing or invalid data' }, { status: 400 });
+  }
+
     if (action === 'start' || action === 'single' || action === 'finish') {
     try {
       const isValid = await verifyOrderToken(orderNumber, token);
       if (!isValid) {
         return Response.json({ error: 'Invalid or expired link' }, { status: 403 });
+      }
+      if (itemFolder) {
+        // The subfolder must belong to an item in this order that needs graphics.
+        const order = await getOrderProducts(orderNumber);
+        const belongs = order?.items.some(
+          (item) => item.needsGraphics && lineFolderName(item) === itemFolder
+        );
+        if (!belongs) {
+          return Response.json({ error: 'This item is not part of the order.' }, { status: 400 });
+        }
       }
       if (folderType === 'proof') {
         const stage = await getOrderStage(orderNumber);
@@ -65,7 +82,9 @@ export async function POST(request) {
 
   const buffer = Buffer.from(await chunk.arrayBuffer());
   const dbx = getDropboxClient();
-  const filePath = `/${orderNumber}/${config.path}/${fileName}`;
+  const filePath = itemFolder
+    ? `/${orderNumber}/${config.path}/${itemFolder}/${fileName}`
+    : `/${orderNumber}/${config.path}/${fileName}`;
 
   try {
     if (action === 'single') {
