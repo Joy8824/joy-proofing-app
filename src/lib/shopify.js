@@ -147,6 +147,11 @@ export async function getOrderProducts(orderNumber) {
                   id
                   name
                   quantity
+                  variant {
+                    graphicPieces: metafield(namespace: "custom", key: "graphic_pieces") {
+                      value
+                    }
+                  }
                   product {
                     metafield(namespace: "custom", key: "product_type") {
                       value
@@ -181,6 +186,7 @@ export async function getOrderProducts(orderNumber) {
     quantity: node.quantity,
     hardwareOnly: isHardwareOnly(node.product?.metafield?.value),
     needsGraphics: needsGraphics(node.product),
+    graphicPieces: node.variant?.graphicPieces?.value || null,
   }));
 
   return { orderName: order.name, items };

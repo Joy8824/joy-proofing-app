@@ -1,6 +1,7 @@
 import { verifyOrderToken, getOrderProducts } from '@/lib/shopify';
 import { lineFolderName } from '@/lib/proofFolders';
 import { readCustomerUploads } from '@/lib/customerUploads';
+import { parsePieceList, getPieceEntries, buildSlots } from '@/lib/graphicPieces';
 
 // Customer-facing list of the items in an order that need graphics.
 // Access: the order's token (same check as the other customer routes).
@@ -29,16 +30,28 @@ export async function GET(request) {
 
     // Hardware Only, Attention Needed and Graphic Services items never need a
     // customer graphic, so the customer does not see them.
-    const items = result.items
-      .filter((item) => item.needsGraphics)
-      .map((item) => {
+    const graphicItems = result.items.filter((item) => item.needsGraphics);
+
+    // The pieces each item's variant is made of, from custom.graphic_pieces,
+    // with their sizes looked up from the graphic_piece entries.
+    const pieceLists = graphicItems.map((item) => parsePieceList(item.graphicPieces));
+    const entries = await getPieceEntries(
+      pieceLists.flatMap(({ lines }) => lines.map((line) => line.piece))
+    );
+
+    const items = graphicItems.map((item, index) => {
         // Same folder name the staff proofing pages use, so both sides line up.
         const folder = lineFolderName(item);
+        const { lines, problems } = pieceLists[index];
+        for (const problem of problems) {
+          console.warn(`graphic_pieces on "${item.name}": ${problem}`);
+        }
         return {
           id: item.id,
           name: item.name,
           quantity: item.quantity,
           folder,
+          slots: buildSlots(lines, entries, item.quantity),
           uploads: (uploadState.items[folder] || []).map((upload) => ({
             fileName: upload.fileName,
             quantity: upload.quantity,

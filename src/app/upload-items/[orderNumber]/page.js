@@ -9,6 +9,13 @@ import { uploadFileInChunks } from '@/lib/uploadFile';
 // quantity is saved so the page can show what is still uncovered.
 // Still to come: size checks, and telling Make once every item is covered.
 
+// "40.16 × 89.37 in", plus a note when the template is not full size
+function formatSize(slot) {
+  if (!slot.width || !slot.height) return '';
+  const size = `${slot.width} × ${slot.height} ${slot.unit}`.trim();
+  return slot.scale && slot.scale !== 100 ? `${size} (${slot.scale}% scale)` : size;
+}
+
 function coveredQuantity(item) {
   return (item.uploads || []).reduce((sum, upload) => sum + (Number(upload.quantity) || 0), 0);
 }
@@ -199,6 +206,27 @@ export default function UploadItemsPage() {
                               : 'Upload graphic'}
                       </button>
                     </div>
+
+                    {item.slots?.length > 0 && (
+                      <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-paper">
+                        {item.slots.map((slot) => (
+                          <li key={slot.key} className="px-4 py-2 flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm text-ink">
+                                {slot.name}
+                                {slot.tag && <span className="text-ink-light"> · {slot.tag}</span>}
+                              </p>
+                              <p className="text-xs text-ink-light">
+                                {slot.found ? formatSize(slot) : 'Size not set up yet'}
+                              </p>
+                            </div>
+                            <p className="shrink-0 text-xs text-ink-light">
+                              {slot.needed} {slot.needed === 1 ? 'graphic' : 'graphics'}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
 
                     {item.uploads?.length > 0 && (
                       <ul className="mt-3 space-y-1">
